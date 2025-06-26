@@ -3,11 +3,12 @@ const startBtn = document.getElementById("startBtn");
 const resetBtn = document.getElementById("resetBtn");
 const sound = document.getElementById("audio");
 const pauseBtn = document.getElementById("pauseBtn");
-let isPaused = false;
 
+let isPaused = false;
 let totalTime = 45 * 60; //45 minutes in seconds
 let remainingTime = totalTime;
 let timerInterval = null;
+let endTime = null;
 
 function updateTimer(seconds) {
     const mins = Math.floor(seconds / 60);
@@ -18,13 +19,21 @@ function updateTimer(seconds) {
 function startTimer() {
     if (timerInterval || isPaused) return; // Prevent multiple intervals
 
-    startBtn.disabled = true;
-    resetBtn.disabled = false;
+    const now = Date.now();
+
+    if (!endTime) {
+        endTime = now + remainingTime * 1000;
+    }
 
     timerInterval = setInterval(() => {
+        const currentTime = Date.now();
+        remainingTime = Math.max(Math.floor((endTime - currentTime) / 1000), 0);
+        updateTimer(remainingTime);
+
         if (remainingTime <= 0) {
             clearInterval(timerInterval);
             timerInterval = null;
+            endTime = null;
             loopSound(3);
             setTimeout(() => {
                 showMessage("Time for 10 squats!");
@@ -33,11 +42,8 @@ function startTimer() {
             //sound.onerror = () => alert("Could not load sound.");
             remainingTime = totalTime;
             updateTimer(remainingTime);
-            isPaused = false;
-        } else {
-            remainingTime--;
-            updateTimer(remainingTime);
-        }
+            
+        } 
     }, 1000);
 } 
 
@@ -48,11 +54,14 @@ function pauseTimer () {
         timerInterval = null;
         isPaused = true;
         pauseBtn.textContent = "Resume";
+
+        remainingTime = Math.max(Math.floor((endTime - Date.now()) / 1000), 0);
+        endTime = null;
     } else {
         //resume
         isPaused = false;
-        startTimer();
         pauseBtn.textContent = "Pause";
+        startTimer();
     }
     
 }
@@ -60,7 +69,10 @@ function pauseTimer () {
 function resetTimer() {
     clearInterval(timerInterval);
     timerInterval = null;
+    isPaused = false;
     remainingTime = totalTime;
+    endTime = null;
+    pauseBtn.textContent = "Pause";
     updateTimer(remainingTime);
 
     startBtn.disabled = false;
